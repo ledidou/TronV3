@@ -1,38 +1,60 @@
+#ifndef BOARD__H
+#define BOARD__H
+
 #include <assert.h>
 
 #include "direction.h"
 #include "display.h"
 
-template <int x0, int x1, int y0, int y1, int outvalue> class BitTable 
+class BitTable 
 {
-    static const int width  = x1 - x0 + 1;
-    static const int height = y1 - y0 + 1;
-    static const int n = width * height; // number of bits in table
-    static const int tabSize = (n + 7) >> 3; // size of table in bytes
-    int8_t table[tabSize];
+    int x0;
+    int x1;
+    int y0;
+    int y1;
+    int outvalue;
+    
+    int width;
+    int height;
+    int tabSize;
+
+    int8_t * table;
+    
   public : 
-    BitTable() {
+    BitTable(int x0, int x1, int y0, int y1, int outvalue) {
+      this->x0 = x0;
+      this->x1 = x1;
+      this->y0 = y0;
+      this->y1 = y1;
+      this->outvalue = outvalue;
+
+      int width  = x1 - x0 + 1;
+      int height = y1 - y0 + 1;
+      int tabSize = (width * height + 7) / 8; // size of table in bytes
+      
+      table = new int8_t[tabSize];
+      
       for (int i=0; i<tabSize; i++) 
         table[i]=0;
-      // TODO memset( table, 0, n);
     };
     int get(int x, int y) {
       if ((x<x0) or (x>x1) or (y<y0) or (y>y1))
         return outvalue;
       else { 
         const int i = (y-y0) * width + (x-x0); 
-        return ( table[i >> 3] >> (i&7) ) & 1 ;
+        return ( table[i / 8] >> (i % 8) ) & 1 ;
       }
     };
     int set(int x, int y, int v) {
       assert ((x>=x0) and (x<=x1) and (y>=y0) and (y<=y1));
       const int i = (y-y0) * width + (x-x0); 
-      const int mask = 1 << (i&7);
+      const int mask = 1 << (i % 8);
       if (v) 
-        table[i>>3] |= mask;
+        table[i/8] |= mask;
       else 
-        table[i>>3] &= ~mask;
+        table[i/8] &= ~mask;
     };
+    // DEBUG method
     void print(char * title) {
       Serial.println(title);
       for(int y=y0; y<=y1; y++) {
@@ -45,32 +67,39 @@ template <int x0, int x1, int y0, int y1, int outvalue> class BitTable
     }
 };
 
-template <int w, int h> class Board {
+class Board {
 
-public: // DEBUG
+/*
   BitTable<1,w-1,1,h-1,1> _point;
   //BitTable<1,w-2,1,h-1,1> _east;
   //BitTable<1,w-1,1,h-2,1> _south;
   BitTable<0,w,0,h,1> _east;
   BitTable<0,w,0,h,1> _south;
-  
+*/
+  BitTable * _point;
+  BitTable * _east;
+  BitTable * _south;
+
   Display * _display;
   
-  bool get_point( int x, int y )             { return _point.get(x,y); }
-  void set_point( int x, int y, bool value ) { _point.set(x,y,value); }
+  bool get_point( int x, int y )             { return _point->get(x,y); }
+  void set_point( int x, int y, bool value ) { _point->set(x,y,value); }
 
-  bool get_east  ( int x, int y ) { return _east.get(x,y);   }
-  bool get_west  ( int x, int y ) { return _east.get(x-1,y); }
-  bool get_south ( int x, int y ) { return _south.get(x,y);  }
-  bool get_north ( int x, int y ) { return _south.get(x,y-1);}
+  bool get_east  ( int x, int y ) { return _east->get(x,y);   }
+  bool get_west  ( int x, int y ) { return _east->get(x-1,y); }
+  bool get_south ( int x, int y ) { return _south->get(x,y);  }
+  bool get_north ( int x, int y ) { return _south->get(x,y-1);}
 
-  void set_east  ( int x, int y, bool value ) { _east.set(x,y,value);   }
-  void set_west  ( int x, int y, bool value ) { _east.set(x-1,y,value); }
-  void set_south ( int x, int y, bool value ) { _south.set(x,y,value);  }
-  void set_north ( int x, int y, bool value ) { _south.set(x,y-1,value);}
+  void set_east  ( int x, int y, bool value ) { _east->set(x,y,value);   }
+  void set_west  ( int x, int y, bool value ) { _east->set(x-1,y,value); }
+  void set_south ( int x, int y, bool value ) { _south->set(x,y,value);  }
+  void set_north ( int x, int y, bool value ) { _south->set(x,y-1,value);}
 
 public :
-  Board( Display * display ) {
+  Board( Display * display, int w, int h )  {
+    _point = new BitTable(1,w-1,1,h-1,1);
+    _east = new BitTable(0,w,0,h,0);
+    _south = new BitTable(0,w,0,h,0);
     _display = display;
   }
 
@@ -167,10 +196,11 @@ public :
     }
   }
     void print() {
-      _point.print( "Point" );
-      _east.print("East");
-      _south.print("South");
+      _point->print( "Point" );
+      _east->print("East");
+      _south->print("South");
     }
 
 };
 
+#endif

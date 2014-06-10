@@ -1,3 +1,6 @@
+#ifndef DIRECTION__H
+#define DIRECTION__H
+
 enum Direction {
   North,
   West,
@@ -35,5 +38,6 @@ void move( int16_t & x, int16_t & y, Direction dir )
   move(x,y,dir,x,y);
 }
 
+#endif
 
 

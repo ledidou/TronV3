@@ -1,11 +1,17 @@
-#include "constants.h"
+#ifndef LIGHTCYCLE__H
+#define LIGHTCYCLE__H
+
+#include "direction.h"
+#include "board.h"
 
 class LightCycle 
 {
-  int8_t x,y;
+  int16_t x,y;
   Direction dir;
   uint16_t color;
-
+  Board * board;
+  bool alive;
+  bool mv; 
   void Trace() 
   {
     Serial.print( x,DEC);
@@ -15,60 +21,90 @@ class LightCycle
   
  public :
   
-  void Init( int8_t x, int8_t y, Direction dir, uint16_t color ) 
+  LightCycle( int16_t x, int16_t y, Direction dir, uint16_t color, Board * board ) 
   {
     this->x = x;
     this->y = y;
     this->color = color;
     this->dir = dir;
+    this->board = board;
     
-    // TODO tft.drawPixel(x, y, color);
-
-    Trace();
+    alive = true;
+    
+    mv = false; // set to true for debug
+    
+    board->SetPoint(x,y,color);
   }
   
-  bool Forward() 
-  {
-    int16_t x0 = x;
-    int16_t y0 = y;
-    // TODO move( x, y, dir, 2 );
-    Trace();
-
-    // tft.drawPixel(x, y, color);
-    /* TODO
-    if ( x == x0 ) 
-      if ( y < y0 ) 
-          tft.drawFastVLine(x0, y, y0-y, color);
-      else
-          tft.drawFastVLine(x0, y0+1, y-y0, color);
-    else 
-      if ( x < x0 ) 
-        tft.drawFastHLine(x, y0, x0-x, color);
-      else
-        tft.drawFastHLine(x0+1, y0, x-x0, color);
-    */  
-    return true;
+  bool Alive() {
+    return alive;
   }
+  
+  bool Loop() 
+  {
+    Serial.println("LOOP");
+    if (alive and mv) {
 
+      if (board->CanMove(x,y,dir)) 
+      {
+        Serial.println("MOVE");
+        board->SetSegment(x,y,dir,color);
+        move(x,y,dir);
+      }
+      else
+      {
+        Serial.println("BOOM");
+        board->ClearLine(x,y);
+        alive = false;
+      }
+    }      
+    return alive;
+  }
+#ifdef false
   void Command( Joystick & j ) 
   {
     j.Check();
     switch(dir) {
-      case NORTH : 
-      case SOUTH : 
-        if (j.left()) 
-           dir = EAST;
-        else if (j.right()) 
-           dir = WEST;
+      case North : 
+      case South : 
+        if (j.left()) {
+           dir = West;
+        } else if (j.right()) { 
+           dir = East;
+        }
         break;
-      case EAST : 
-      case WEST : 
-        if (j.up()) 
-            dir = NORTH;
-        else if (j.down()) 
-            dir = SOUTH;
+      case East : 
+      case West : 
+        if (j.up()) {
+            dir = North;
+        } else if (j.down()) {
+            dir = South;
+        }
         break;
     }
+    mv = true;
+    Serial.println(dir);
   }
+#else
+  void Command( Joystick & j ) 
+  {
+    j.Check();
+    mv = true;
+        if (j.left()) {
+           dir = West;
+        } else if (j.right()) { 
+           dir = East;
+        } else if (j.up()) {
+            dir = North;
+        } else if (j.down()) {
+            dir = South;
+        } else 
+          mv = false;
+    if (mv)
+      Serial.print("Move");
+    Serial.println(dir);
+  }
+#endif
 };
 
+#endif LIGHTCYCLE__H
