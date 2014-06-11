@@ -28,9 +28,9 @@ class BitTable
       this->y1 = y1;
       this->outvalue = outvalue;
 
-      int width  = x1 - x0 + 1;
-      int height = y1 - y0 + 1;
-      int tabSize = (width * height + 7) / 8; // size of table in bytes
+      width  = x1 - x0 + 1;
+      height = y1 - y0 + 1;
+      tabSize = (width * height + 7) / 8; // size of table in bytes
       
       table = new int8_t[tabSize];
       

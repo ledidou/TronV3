@@ -4,6 +4,8 @@
 #include "direction.h"
 #include "board.h"
 
+#include <random.h>
+
 class LightCycle 
 {
   int16_t x,y;
@@ -11,13 +13,6 @@ class LightCycle
   uint16_t color;
   Board * board;
   bool alive;
-  bool mv; 
-  void Trace() 
-  {
-    Serial.print( x,DEC);
-    Serial.print( ',' );
-    Serial.println( y,DEC);    
-  }  
   
  public :
   
@@ -31,9 +26,13 @@ class LightCycle
     
     alive = true;
     
-    mv = false; // set to true for debug
-    
     board->SetPoint(x,y,color);
+  }
+
+  ~LightCycle() 
+  {
+    if (alive)
+      board->ClearLine(x,y);
   }
   
   bool Alive() {
@@ -42,69 +41,99 @@ class LightCycle
   
   bool Loop() 
   {
-    Serial.println("LOOP");
-    if (alive and mv) {
+    if (alive) {
 
       if (board->CanMove(x,y,dir)) 
       {
-        Serial.println("MOVE");
         board->SetSegment(x,y,dir,color);
         move(x,y,dir);
       }
       else
       {
-        Serial.println("BOOM");
+        // CRASH !
         board->ClearLine(x,y);
         alive = false;
       }
     }      
     return alive;
   }
-#ifdef false
-  void Command( Joystick & j ) 
+  
+#if true
+  void Command( Joystick * j ) 
   {
-    j.Check();
+    j->Check();
     switch(dir) {
       case North : 
       case South : 
-        if (j.left()) {
+        if (j->left()) {
            dir = West;
-        } else if (j.right()) { 
+        } else if (j->right()) { 
            dir = East;
         }
         break;
       case East : 
       case West : 
-        if (j.up()) {
+        if (j->up()) {
             dir = North;
-        } else if (j.down()) {
+        } else if (j->down()) {
             dir = South;
         }
         break;
     }
-    mv = true;
-    Serial.println(dir);
   }
 #else
-  void Command( Joystick & j ) 
+  // for debug
+  void Command( Joystick * j ) 
   {
-    j.Check();
-    mv = true;
-        if (j.left()) {
+        j->Check();
+        alive=true;
+        if (j->left()) {
            dir = West;
-        } else if (j.right()) { 
+        } else if (j->right()) { 
            dir = East;
-        } else if (j.up()) {
+        } else if (j->up()) {
             dir = North;
-        } else if (j.down()) {
+        } else if (j->down()) {
             dir = South;
         } else 
-          mv = false;
-    if (mv)
-      Serial.print("Move");
-    Serial.println(dir);
+          alive = false;
   }
 #endif
+
+  //
+  // IA
+  //
+  // currently very stupid : 
+  //   - turn randomly if wall
+  //   - don't care of target !
+  //
+  void Ia( LightCycle * target ) 
+  {
+    if (alive) {
+      if (board->CanMove(x,y,dir)) 
+        // if possible continue in this direction
+        return;
+
+      Direction sav_dir = dir;
+      
+      if (random(2)==1) 
+        dir = turnright(dir);
+      else  
+        dir = turnleft(dir);
+  
+      // try a direction        
+      if (board->CanMove(x,y,dir)) 
+        return;
+      
+      // try the other
+      dir = turnback(dir);
+      if (board->CanMove(x,y,dir)) 
+        return;
+        
+      // continue if impossible to turn (it's the end !)
+      dir = sav_dir;      
+    }
+  }
 };
 
 #endif LIGHTCYCLE__H

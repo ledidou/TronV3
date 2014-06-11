@@ -38,6 +38,20 @@ void move( int16_t & x, int16_t & y, Direction dir )
   move(x,y,dir,x,y);
 }
 
+Direction turnleft( Direction dir ) 
+{
+  return Direction( (dir + 1) & 3 );
+};
+
+Direction turnright( Direction dir ) 
+{
+  return Direction( (dir - 1) & 3 );
+};
+
+Direction turnback( Direction dir ) 
+{
+  return Direction( (dir + 2) & 3 );
+};
 #endif
 
 
